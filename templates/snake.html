@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Snake</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --grid-color: #1e293b;
+            --text-color: #f8fafc;
+            /* Default Theme (Neon) */
+            --primary-color: #00ff88;
+            --secondary-color: #ff0055;
+            --accent-color: #38bdf8;
+        }
+
+        [data-theme="cyber"] {
+            --primary-color: #00e5ff;
+            /* Cyan */
+            --secondary-color: #d500f9;
+            /* Purple */
+            --accent-color: #ffea00;
+            /* Yellow */
+            --bg-color: #050a14;
+            --grid-color: #0f1c30;
+        }
+
+        [data-theme="sunset"] {
+            --primary-color: #ff9100;
+            /* Orange */
+            --secondary-color: #ff3d00;
+            /* Red */
+            --accent-color: #ffd600;
+            /* Yellow */
+            --bg-color: #1a0f0f;
+            --grid-color: #2e1a1a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        .main-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .center-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-container {
+            position: relative;
+            padding: 2px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            transition: background 0.5s ease;
+        }
+
+        canvas {
+            background-color: var(--grid-color);
+            border-radius: 10px;
+            display: block;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.5s ease;
+        }
+
+        .ui-panel {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 40px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .score-box span {
+            color: var(--primary-color);
+        }
+
+        .high-score-box span {
+            color: var(--accent-color);
+        }
+
+        .theme-panel {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-top: 60px;
+            /* Align with game board visually */
+        }
+
+        .panel-title {
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            color: var(--text-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .control-btn:hover,
+        .control-btn.active {
+            background: var(--primary-color);
+            color: var(--bg-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-over-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .play-btn {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .play-btn:hover {
+            background: var(--primary-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 30px var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .controls-hint {
+            margin-top: 15px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body data-theme="neon">
+
+    <div class="main-layout">
+        <div class="center-column">
+            <div class="ui-panel">
+                <div class="score-box">Score: <span id="score">0</span></div>
+                <div class="high-score-box">High: <span id="highScore">0</span></div>
+            </div>
+
+            <div class="game-container">
+                <canvas id="gameCanvas" width="600" height="600"></canvas>
+                <div class="game-over-overlay" id="gameOverScreen">
+                    <h1>GAME OVER</h1>
+                    <button class="play-btn" onclick="startGame()">Play Again</button>
+                </div>
+            </div>
+
+            <div class="theme-panel">
+                <button class="control-btn active" onclick="setTheme('neon')" id="btn-neon">Neon</button>
+                <button class="control-btn" onclick="setTheme('cyber')" id="btn-cyber">Cyber</button>
+                <button class="control-btn" onclick="setTheme('sunset')" id="btn-sunset">Sunset</button>
+            </div>
+
+            <div class="controls-hint">Use ARROW keys to move</div>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-title">Speed</div>
+            <button class="control-btn" onclick="setSpeed('slow')" id="btn-speed-slow">Slow</button>
+            <button class="control-btn active" onclick="setSpeed('normal')" id="btn-speed-normal">Normal</button>
+            <button class="control-btn" onclick="setSpeed('fast')" id="btn-speed-fast">Fast</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0;
+        highScoreElement.textContent = highScore;
+
+        let snake = [];
+        let food = { x: 15, y: 15 };
+        let velocity = { x: 0, y: 0 };
+        let nextVelocity = { x: 0, y: 0 };
+        let gameLoopId;
+        let isGameRunning = false;
+
+        // Speed settings
+        const speedSettings = {
+            slow: 150,
+            normal: 100,
+            fast: 50
+        };
+        let currentSpeedMode = 'normal';
+        let baseSpeed = speedSettings.normal;
+        let currentSpeed = baseSpeed;
+
+        let lastTime = 0;
+
+        // Theme Configuration
+        const themes = {
+            neon: {
+                snake: '#00ff88',
+                head: '#00cc6a',
+                food: '#ff0055',
+                bg: '#1e293b'
+            },
+            cyber: {
+                snake: '#00e5ff',
+                head: '#00b8cc',
+                food: '#d500f9',
+                bg: '#0f1c30'
+            },
+            sunset: {
+                snake: '#ff9100',
+                head: '#cc7400',
+                food: '#ff3d00',
+                bg: '#2e1a1a'
+            }
+        };
+
+        let currentTheme = themes.neon;
+
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            currentTheme = themes[themeName];
+
+            // Update active state for theme buttons (using common class but specific IDs)
+            document.querySelectorAll('.theme-panel .control-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${themeName}`).classList.add('active');
+
+            draw();
+        }
+
+        function setSpeed(speedMode) {
+            currentSpeedMode = speedMode;
+            baseSpeed = speedSettings[speedMode];
+
+            // Update UI
+            document.getElementById('btn-speed-slow').classList.remove('active');
+            document.getElementById('btn-speed-normal').classList.remove('active');
+            document.getElementById('btn-speed-fast').classList.remove('active');
+            document.getElementById(`btn-speed-${speedMode}`).classList.add('active');
+
+            // Reset dynamic speed if game is running, but keep relative difficulty increase? 
+            // For simplicity, just reset to base speed or adjust proportionately.
+            // Let's just update the current variable to the new base, logic will handle acceleration
+            if (!isGameRunning) {
+                currentSpeed = baseSpeed;
+            } else {
+                // If mid-game, maybe we should respect the speed increase?
+                // Let's keep it simple: speed is baseSpeed - (score difficulty)
+                // We'll update the difficulty calculation in update() to use baseSpeed
+            }
+        }
+
+        function startGame() {
+            snake = [
+                { x: 10, y: 10 },
+                { x: 9, y: 10 },
+                { x: 8, y: 10 }
+            ];
+            velocity = { x: 1, y: 0 };
+            nextVelocity = { x: 1, y: 0 };
+            score = 0;
+            scoreElement.textContent = score;
+            gameOverScreen.classList.remove('visible');
+            isGameRunning = true;
+
+            // Reset speed to selected base
+            currentSpeed = baseSpeed;
+
+            placeFood();
+
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function placeFood() {
+            food = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+            for (let part of snake) {
+                if (part.x === food.x && part.y === food.y) {
+                    placeFood();
+                    break;
+                }
+            }
+        }
+
+        function gameLoop(currentTime) {
+            if (!isGameRunning) return;
+
+            gameLoopId = requestAnimationFrame(gameLoop);
+
+            const deltaTime = currentTime - lastTime;
+            if (deltaTime < currentSpeed) return;
+
+            lastTime = currentTime;
+            update();
+            draw();
+        }
+
+        function update() {
+            velocity = { ...nextVelocity };
+            const head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
+
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+                return;
+            }
+
+            for (let part of snake) {
+                if (head.x === part.x && head.y === part.y) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreElement.textContent = score;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('snakeHighScore', highScore);
+                    highScoreElement.textContent = highScore;
+                }
+
+                // Speed Logic: value decreases to go faster
+                // Cap max speed (minimum delay) at 30ms
+                const speedDecrease = Math.floor(score / 50) * 5;
+                currentSpeed = Math.max(30, baseSpeed - speedDecrease);
+
+                placeFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function draw() {
+            // Background
+            ctx.fillStyle = currentTheme.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // Food
+            ctx.fillStyle = currentTheme.food;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = currentTheme.food;
+            ctx.beginPath();
+            ctx.arc(
+                food.x * gridSize + gridSize / 2,
+                food.y * gridSize + gridSize / 2,
+                gridSize / 2 - 2,
+                0, Math.PI * 2
+            );
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Snake
+            snake.forEach((part, index) => {
+                const isHead = index === 0;
+                ctx.fillStyle = isHead ? currentTheme.head : currentTheme.snake;
+
+                if (isHead) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = currentTheme.snake;
+                }
+
+                ctx.fillRect(
+                    part.x * gridSize + 1,
+                    part.y * gridSize + 1,
+                    gridSize - 2,
+                    gridSize - 2
+                );
+
+                ctx.shadowBlur = 0;
+
+                // Eyes
+                if (isHead) {
+                    ctx.fillStyle = '#fff';
+                    const eyeSize = 3;
+                    const eyeOffset = 5;
+                    let lx, ly, rx, ry;
+
+                    if (velocity.x === 1) { // Right
+                        lx = rx = part.x * gridSize + gridSize - eyeOffset;
+                        ly = part.y * gridSize + eyeOffset;
+                        ry = part.y * gridSize + gridSize - eyeOffset;
+                    } else if (velocity.x === -1) { // Left
+                        lx = rx = part.x * gridSize + eyeOffset;
+                        ly = part.y * gridSize + eyeOffset;
+                        ry = part.y * gridSize + gridSize - eyeOffset;
+                    } else if (velocity.y === 1) { // Down
+                        lx = part.x * gridSize + gridSize - eyeOffset;
+                        rx = part.x * gridSize + eyeOffset;
+                        ly = ry = part.y * gridSize + gridSize - eyeOffset;
+                    } else { // Up
+                        lx = part.x * gridSize + gridSize - eyeOffset;
+                        rx = part.x * gridSize + eyeOffset;
+                        ly = ry = part.y * gridSize + eyeOffset;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(lx, ly, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(rx, ry, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            gameOverScreen.classList.add('visible');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!isGameRunning && e.key === 'Enter') {
+                startGame();
+            }
+            switch (e.key) {
+                case 'ArrowUp': if (velocity.y !== 1) nextVelocity = { x: 0, y: -1 }; break;
+                case 'ArrowDown': if (velocity.y !== -1) nextVelocity = { x: 0, y: 1 }; break;
+                case 'ArrowLeft': if (velocity.x !== 1) nextVelocity = { x: -1, y: 0 }; break;
+                case 'ArrowRight': if (velocity.x !== -1) nextVelocity = { x: 1, y: 0 }; break;
+            }
+        });
+
+        // Initialize
+        startGame();
+    </script>
+</body>
+
+</html>
